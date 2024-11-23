@@ -1,0 +1,4 @@
+[50768] 21 Nov 23:31:34.793 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+[50768] 21 Nov 23:31:34.797 # Redis version=5.0.14.1, bits=64, commit=ec77f72d, modified=0, pid=50768, just started
+[50768] 21 Nov 23:31:34.797 # Configuration loaded
+[50768] 21 Nov 23:31:34.801 # Could not create server TCP listening socket 127.0.0.1:6379: bind: The storage control block address is invalid.
