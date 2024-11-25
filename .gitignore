@@ -1,0 +1,37 @@
+# Byte-compiled Python files
+*.pyc
+*.pyo
+__pycache__/
+
+# Logs
+logs/
+*.log
+
+# Redis-related files
+*.exe
+*.dll
+dump.rdb
+*.zip
+
+# Database files
+*.duckdb
+*.sqlite3
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment files
+.env
+.venv/
+poetry.lock
+
+# VS Code settings
+.vscode/
+.vscode/settings.json
+
+# Operating system-specific files
+.DS_Store
+Thumbs.db
+
+# Miscellaneous
+*.tmp
