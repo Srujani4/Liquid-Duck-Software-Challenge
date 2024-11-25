@@ -130,9 +130,11 @@ logic.
 
 **4.1 Architectural Diagram**
 
-![A diagram of a software system Description automatically
-generated](media/image1.png){width="3.6735411198600176in"
-height="5.60490813648294in"}
+Below is the architecture flowchart for the project:
+
+![Architecture Flowchart](images/architecture_flowchart.png)
+
+The flowchart illustrates the interactions between users, APIs, Redis, DuckDB, and other components.
 
 **4.2 Data Flow for Update Process**
 
