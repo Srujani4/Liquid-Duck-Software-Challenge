@@ -1,0 +1,158 @@
+{
+	"info": {
+		"_postman_id": "002aa394-9b9e-47a5-85f5-0330adcca2ca",
+		"name": "Liquid Duck Challenge",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39860259"
+	},
+	"item": [
+		{
+			"name": "level up hierarchy",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"table\": \"sales_summary_by_product_family\",\r\n    \"column\": \"quantity\",\r\n    \"value\": \"45\",\r\n    \"condition\": \"supplier = 'Elliott and Sons' AND family ='sing' and invoice_date_month = '2024-02'\",\r\n    \"level\": 2\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/update_cell",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"update_cell"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "hierarchy",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"table\": \"sales_summary_by_product_family\",\r\n    \"column\": \"quantity\",\r\n    \"value\": \"29.0\",\r\n    \"condition\": \"supplier = 'Elliott and Sons' AND brand = 'television' and invoice_date_month = '2024-01'\",\r\n    \"level\": null\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/update_cell",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"update_cell"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "roll up",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"table\": \"sales_summary_by_product_family\",\r\n    \"column\": \"quantity\",\r\n    \"value\": \"200\",\r\n    \"condition\": \"grouping_set_id = 1 AND supplier = 'Smith Ltd' AND brand = 'many' AND family = 'impact'\",\r\n    \"level\": 1\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/update_cell",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"update_cell"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "equal ",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"table\": \"sales_summary_by_product_family\",\r\n    \"column\": \"quantity\",\r\n    \"value\": \"20\",\r\n    \"condition\": \"grouping_set_id = 1 AND supplier = 'Smith Ltd' AND brand = 'many' AND family = 'impact'\",\r\n    \"level\": 1\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/update_cell",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"update_cell"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
