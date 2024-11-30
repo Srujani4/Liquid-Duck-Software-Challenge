@@ -72,6 +72,13 @@ The following steps make up the backend design:
    - POST/update_cell: sends an update request to Redis request_duck
    - GET/get_updates: receives updates from redis response_duck
    - GET/view_table/{table_name}: gives full data of the table--considering this option
+  
+# steps for execution
+-Created and executed data.py to create tables
+-Established a connection with DuckDB singleton class with DuckDBManager.py 
+-Created centralised logs with logger.py file
+-Ran the fast api with uvicorn to establish a connection with redis and duckdb thereby sending the requests through postman and updating the respective columns/tables.
+-verified Redu=is cli for response updated and queried DuckDB to check the updates
    
 # Test cases
 1.  Update a cell and validate the corresponding changes in DuckDB and Redis.
