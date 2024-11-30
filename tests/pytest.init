@@ -1,0 +1,5 @@
+[pytest]
+pythonpath = ["Challenge"]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = function
+addopts = --cov=Challenge --cov-report=html --cov-report=term
