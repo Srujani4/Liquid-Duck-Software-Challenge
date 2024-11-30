@@ -92,6 +92,65 @@ async def read_root():
     return {"message": "Welcome to the Liquid Duck API!"}
 
 
+# @app.post("/update_cell")
+# async def update_cell(request: UpdateRequest):
+#     """
+#     Update a specific cell in the database and propagate changes if necessary.
+#     """
+#     try:
+#         # Extract data from the validated request
+#         table = request.table
+#         column = request.column
+#         value = request.value
+#         condition = request.condition
+#         level = request.level
+
+#         print(f"Received data - Table: {table}, Column: {column}, Value: {value}, Condition: {condition}, Level: {level}")
+#         api_logger.info(f"Processing update request for table {table}.")
+
+#         # Test database connectivity
+#         await db_manager.execute_query_async("SELECT 1;")
+#         print("DuckDB connected successfully.")
+
+#         # Execute the update query asynchronously
+#         await db_manager.execute_query_async(
+#             f"""
+#             UPDATE {table}
+#             SET {column} = '{value}'
+#             WHERE {condition};
+#             """
+#         )
+#         print(f"Update query executed successfully for {table}.")
+
+#         # Handle proportional rebalance for hierarchical updates
+#         if table == "sales_summary_by_product_family" and level is not None:
+#             api_logger.info(f"proportional rebalance for level {level}.")
+#             await db_manager.proportional_rebalance_async(level, int(value))
+
+#         # Broadcast the changes to Redis response stream
+#         await redis_client.ping()
+#         print("Redis connected successfully.")
+#         await redis_client.xadd(
+#             RESPONSE_STREAM,
+#             {
+#                 "table": table,
+#                 "column": column,
+#                 "value": value,
+#                 "condition": condition,
+#                 "level": str(level) if level is not None else "null",
+#             }
+#         )
+#         print(f"Changes broadcasted to Redis stream {RESPONSE_STREAM}.")
+
+#         api_logger.info(f"updated {table}:{column}={value} WHERE {condition}.")
+#         return {"status": "success", "message": f"Updated {table}"}
+
+#     except HTTPException as e:
+#         api_logger.warning(f"HTTPException while update_cell: {str(e)}")
+#         raise e
+#     except Exception as e:
+#         api_logger.error(f"Unexpected server error: {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 @app.post("/update_cell")
 async def update_cell(request: UpdateRequest):
     """
@@ -105,6 +164,10 @@ async def update_cell(request: UpdateRequest):
         condition = request.condition
         level = request.level
 
+        # Validate critical fields
+        if not table or not column or not condition:
+            raise HTTPException(status_code=400, detail="Invalid input: Missing required fields.")
+
         print(f"Received data - Table: {table}, Column: {column}, Value: {value}, Condition: {condition}, Level: {level}")
         api_logger.info(f"Processing update request for table {table}.")
 
@@ -113,14 +176,18 @@ async def update_cell(request: UpdateRequest):
         print("DuckDB connected successfully.")
 
         # Execute the update query asynchronously
-        await db_manager.execute_query_async(
-            f"""
-            UPDATE {table}
-            SET {column} = '{value}'
-            WHERE {condition};
-            """
-        )
-        print(f"Update query executed successfully for {table}.")
+        try:
+            await db_manager.execute_query_async(
+                f"""
+                UPDATE {table}
+                SET {column} = '{value}'
+                WHERE {condition};
+                """
+            )
+            print(f"Update query executed successfully for {table}.")
+        except Exception as query_error:
+            api_logger.error(f"Query execution error: {str(query_error)}")
+            raise HTTPException(status_code=500, detail="Query execution failed.")
 
         # Handle proportional rebalance for hierarchical updates
         if table == "sales_summary_by_product_family" and level is not None:
@@ -128,19 +195,23 @@ async def update_cell(request: UpdateRequest):
             await db_manager.proportional_rebalance_async(level, int(value))
 
         # Broadcast the changes to Redis response stream
-        await redis_client.ping()
-        print("Redis connected successfully.")
-        await redis_client.xadd(
-            RESPONSE_STREAM,
-            {
-                "table": table,
-                "column": column,
-                "value": value,
-                "condition": condition,
-                "level": str(level) if level is not None else "null",
-            }
-        )
-        print(f"Changes broadcasted to Redis stream {RESPONSE_STREAM}.")
+        try:
+            await redis_client.ping()
+            print("Redis connected successfully.")
+            await redis_client.xadd(
+                RESPONSE_STREAM,
+                {
+                    "table": table,
+                    "column": column,
+                    "value": value,
+                    "condition": condition,
+                    "level": str(level) if level is not None else "null",
+                }
+            )
+            print(f"Changes broadcasted to Redis stream {RESPONSE_STREAM}.")
+        except Exception as redis_error:
+            api_logger.error(f"Redis broadcast error: {str(redis_error)}")
+            raise HTTPException(status_code=500, detail="Failed to broadcast changes to Redis.")
 
         api_logger.info(f"updated {table}:{column}={value} WHERE {condition}.")
         return {"status": "success", "message": f"Updated {table}"}

@@ -22,7 +22,16 @@ class DuckDBManager:
                         entrypoint="duckdb_adbc_init",
                         db_kwargs={"path": "sales_metrics.duckdb"}
                     )
-        return cls._instance
+        return cls._instance  
+
+    @classmethod
+    def set_instance_for_testing(cls, conn):
+        """
+        Set the instance with a custom connection for testing purposes.
+        """
+        with cls._lock:
+            cls._instance = super(DuckDBManager, cls).__new__(cls)
+            cls._instance.conn = conn
 
     def execute_query(self, query, params=None):
         """
@@ -32,11 +41,11 @@ class DuckDBManager:
             with self.conn.cursor() as cursor:
                 print(f"Executing query: {query}")  
                 cursor.execute(query, params or [])
-                self.conn.commit()  
-                print("Query executed successfully.")  
+                self.conn.commit()
+                print("Query executed successfully.")
                 return cursor.fetch_arrow_table()  # Return PyArrow table
         except Exception as e:
-            print(f"Error during query execution: {e}")  
+            print(f"Error during query execution: {e}")
             raise
 
     async def execute_query_async(self, query, params=None):
@@ -45,15 +54,17 @@ class DuckDBManager:
             return await loop.run_in_executor(None, self.execute_query,
                                               query, params)
         except Exception as e:
-            print(f"Error during async query execution: {e}")  
+            print(f"Error during async query execution: {e}")
             raise
 
     def adbc_ingest(self, table_name, arrow_table):
         """
         Ingest data into a DuckDB table using ADBC.
-        """
+        """ 
         with self.conn.cursor() as cursor:
-            cursor.adbc_ingest(table_name, arrow_table)
+            print(f"Ingesting data into table: {table_name}")  # Debug
+            cursor.adbc_ingest(table_name, arrow_table)  # Ensure `adbc_ingest` is called
+            print(f"Data ingested into {table_name}.")  # Debug
 
     def update_dependencies(self, table, column, value, condition):
         """
@@ -259,21 +270,3 @@ if __name__ == "__main__":
 
     # Example: Rollup
     db_manager.rollup_to_parents(1)
-
-if __name__ == "__main__":
-    db_manager = DuckDBManager()
-
-    # Example: Direct Update
-    db_manager.execute_query(
-        """
-        UPDATE sales_summary_by_product_family
-        SET quantity = 500
-        WHERE supplier = 'Smith Ltd '
-        AND brand = 'many'
-        AND family = 'impact';
-        """
-    )
-
-    # Verify Update
-    result = db_manager.execute_query("SELECT * FROM sales_summary_by_product_family;")
-    print(result.to_pandas())

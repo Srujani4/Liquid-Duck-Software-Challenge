@@ -4,7 +4,6 @@ import json
 from DuckDBManager import DuckDBManager
 from logger import redis_logger
 
-# Initialize Redis client
 redis_client = aioredis.from_url("redis://localhost:6379", decode_responses=True)
 db_manager = DuckDBManager()
 

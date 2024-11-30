@@ -40,7 +40,3 @@ Thumbs.db
 # Documentation
 RELEASENOTES.txt
 
-# Ignore images or other large files 
-*.png
-*.jpg
-*.jpeg
