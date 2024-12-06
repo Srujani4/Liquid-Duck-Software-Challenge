@@ -12,6 +12,19 @@ If Poetry is not installed, install it using the following command:
 
 [curl -sSL https://install.python-poetry.org | python3 -]{.mark}
 
+Navigate to your project directory (e.g., Liquid-Duck-Software-Challenge) and initialize Poetry:
+poetry init
+The command will prompt you to:
+
+Set project name
+Version
+Description
+Author(s)
+License
+Python version compatibility
+Dependencies (you can skip or add them during the setup)
+This creates a pyproject.toml file in your project root.
+
 Verify the installation:
 
 [poetry \--version]{.mark}
