@@ -1,6 +1,13 @@
+"""
+Data initialization script for sales metrics database.
+Creates and populates sample tables for products, customers,
+and sales data in DuckDB.
+"""
+
+import random
+
 import duckdb
 import pandas as pd
-import random
 from faker import Faker
 
 # Initialize Faker
@@ -106,7 +113,7 @@ for table in tables:
     print(f"Contents of table: {table}")
     result = conn.execute(f"SELECT * FROM {table};").fetchdf()  # DataFrame
     print(result)
-    print("-" * 50)  
+    print("-" * 50)
 
 conn.execute("DROP VIEW IF EXISTS pivoted_sales")
 

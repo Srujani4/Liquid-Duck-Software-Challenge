@@ -1,14 +1,30 @@
-import pyarrow
-from adbc_driver_manager import dbapi
-import threading
+"""
+DuckDB database manager module providing connection handling and query 
+execution. Implements singleton pattern and async operations for database 
+interactions.
+"""
+
+try:
+    import pyarrow
+except ImportError as exc:
+    raise ImportError("Please install pyarrow: poetry add pyarrow") from exc
+
 import asyncio
+import threading
+
+from adbc_driver_manager import dbapi
 
 
 class DuckDBManager:
+    """
+    Singleton class managing DuckDB database connections and operations.
+    Provides synchronous and asynchronous query execution capabilities.
+    """
     _instance = None
     _lock = threading.Lock()
+    conn = None  # Initialize conn attribute
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls):
         """
         Singleton Pattern: Ensure only one instance of DuckDBManager exists.
         """
@@ -18,11 +34,14 @@ class DuckDBManager:
                     # Modify the path and entrypoint for ADBC connection
                     cls._instance = super(DuckDBManager, cls).__new__(cls)
                     cls._instance.conn = dbapi.connect(
-                        driver="C:/Users/svatt/libduckdb-windows-amd64/duckdb.dll",
+                        driver=(
+                            "C:/Users/svatt/libduckdb-windows-amd64/"
+                            "duckdb.dll"
+                        ),
                         entrypoint="duckdb_adbc_init",
                         db_kwargs={"path": "sales_metrics.duckdb"}
                     )
-        return cls._instance  
+        return cls._instance
 
     @classmethod
     def set_instance_for_testing(cls, conn):
@@ -39,7 +58,7 @@ class DuckDBManager:
         """
         try:
             with self.conn.cursor() as cursor:
-                print(f"Executing query: {query}")  
+                print(f"Executing query: {query}")
                 cursor.execute(query, params or [])
                 self.conn.commit()
                 print("Query executed successfully.")
@@ -49,6 +68,14 @@ class DuckDBManager:
             raise
 
     async def execute_query_async(self, query, params=None):
+        """
+        Asynchronously executes a database query using an event loop.
+        Args:
+            query: SQL query string to execute
+            params: Optional query parameters
+        Returns:
+            PyArrow table with query results
+        """
         try:
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(None, self.execute_query,
@@ -60,10 +87,10 @@ class DuckDBManager:
     def adbc_ingest(self, table_name, arrow_table):
         """
         Ingest data into a DuckDB table using ADBC.
-        """ 
+        """
         with self.conn.cursor() as cursor:
             print(f"Ingesting data into table: {table_name}")  # Debug
-            cursor.adbc_ingest(table_name, arrow_table)  # Ensure `adbc_ingest` is called
+            cursor.adbc_ingest(table_name, arrow_table)
             print(f"Data ingested into {table_name}.")  # Debug
 
     def update_dependencies(self, table, column, value, condition):
@@ -128,7 +155,11 @@ class DuckDBManager:
 
         total_quantity = sum(child[1] for child in children)
         for child_level, child_quantity in children:
-            proportion = child_quantity/total_quantity if total_quantity else 1/len(children)
+            proportion = (
+                child_quantity / total_quantity
+                if total_quantity
+                else 1 / len(children)
+            )
             new_child_value = new_value * proportion
 
             # Update child quantities
@@ -149,7 +180,7 @@ class DuckDBManager:
         """
         try:
             loop = asyncio.get_event_loop()
-            
+          
             # Fetch current child values
             children = await loop.run_in_executor(
                 None,
@@ -162,15 +193,23 @@ class DuckDBManager:
             )
 
             # Convert PyArrow scalars to native Python types
-            children = [(child[0].as_py() if hasattr(child[0], "as_py") else child[0],
-                        child[1].as_py() if hasattr(child[1], "as_py") else child[1])
-                        for child in children]
+            children = [
+                (
+                    child[0].as_py() if hasattr(child[0], "as_py")
+                    else child[0],
+                    child[1].as_py() if hasattr(child[1], "as_py")
+                    else child[1]
+                )
+                for child in children
+            ]
 
             total_quantity = sum(child[1] for child in children)
             tasks = []
             for child_level, child_quantity in children:
                 proportion = (
-                    child_quantity / total_quantity if total_quantity else 1 / len(children)
+                    child_quantity / total_quantity
+                    if total_quantity
+                    else 1 / len(children)
                 )
                 new_child_value = new_value * proportion
 
@@ -186,7 +225,7 @@ class DuckDBManager:
                         """
                     )
                 )
-              
+             
             # Wait for all updates to complete
             await asyncio.gather(*tasks)
         except Exception as e:
@@ -194,10 +233,13 @@ class DuckDBManager:
             raise
 
     def rollup_to_parents(self, level):
-        # """
-        # Rollup changes from a given level to higher levels.
-        # Aggregates `quantity` and `net_amount` to the next higher level.
-        # """
+        """
+        Rollup changes from a given level to higher levels.
+        Aggregates quantity and net_amount to the next higher level.
+      
+        Args:
+            level: The hierarchical level to rollup from
+        """
         self.execute_query(
             f"""
             UPDATE sales_summary_by_product_family

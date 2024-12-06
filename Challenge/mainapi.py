@@ -1,40 +1,54 @@
+"""
+FastAPI application module for handling database operations
+and real-time updates.
+Provides REST endpoints for cell updates and multi-user synchronization.
+"""
+
+from contextlib import asynccontextmanager
+from typing import Optional
+
+import duckdb
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
+import redis
 import redis.asyncio as aioredis
-# import json
-from typing import Optional
+
+from duckdb_manager import DuckDBManager
 from logger import api_logger
-from DuckDBManager import DuckDBManager
-from contextlib import asynccontextmanager
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(application: FastAPI):
     """
-    FastAPI lifespan to manage startup and shutdown processes 
+    FastAPI lifespan to manage startup and shutdown processes
     for Redis and DuckDB.
     """
-    print("Starting application lifespan...")
+    print(f"Starting {application.title} lifespan...")
 
     # Startup: Test Redis and DuckDB connections
     try:
         await redis_client.ping()
         print("Connected to Redis successfully.")
         api_logger.info("Redis connection successful.")
-    except Exception as e:
+    except (
+        redis.exceptions.ConnectionError,
+        redis.exceptions.RedisError
+    ) as e:
         print(f"Redis connection failed: {e}")
         api_logger.error(f"Redis connection failed: {e}")
-        raise RuntimeError("Redis connection failed. Check your Redis server.")
+        raise RuntimeError(
+            "Redis connection failed. Check your Redis server."
+        ) from e
 
     try:
         await db_manager.execute_query_async("SELECT 1;")
         print("Connected to DuckDB successfully.")
         api_logger.info("DuckDB connection successful.")
-    except Exception as e:
+    except duckdb.Error as e:
         print(f"DuckDB connection failed: {e}")
         api_logger.error(f"DuckDB connection failed: {e}")
-        raise RuntimeError("DuckDB connection failed.DuckDB is accessible.")
+        raise RuntimeError("DuckDB connection failed.") from e
 
     # Allow application to run
     yield
@@ -45,18 +59,25 @@ async def lifespan(app: FastAPI):
         await redis_client.close()
         print("Redis connection closed.")
         api_logger.info("Redis connection closed.")
-    except Exception as e:
+    except (
+        redis.exceptions.ConnectionError,
+        redis.exceptions.RedisError
+    ) as e:
         print(f"Error closing Redis connection: {e}")
-        api_logger.error(f"Error closing Redis connection: {e}")
+        api_logger.error(
+            f"Error closing Redis connection: {e}"
+        )
 
     # Additional cleanup for DuckDB (if needed)
     try:
         db_manager.conn.close()
         print("DuckDB connection closed.")
         api_logger.info("DuckDB connection closed.")
-    except Exception as e:
+    except duckdb.Error as e:
         print(f"Error closing DuckDB connection: {e}")
-        api_logger.error(f"Error closing DuckDB connection: {e}")
+        api_logger.error(
+            f"Error closing DuckDB connection: {e}"
+        )
 
     print("Application lifespan shutdown complete.")
 
@@ -64,7 +85,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # Initialize Async Redis client
-redis_client = aioredis.from_url("redis://localhost:6379", decode_responses=True)
+redis_client = aioredis.from_url(
+    "redis://localhost:6379",
+    decode_responses=True
+)
 
 # Initialize DuckDB Manager
 db_manager = DuckDBManager()
@@ -76,11 +100,21 @@ RESPONSE_STREAM = "response_duck"
 
 # Pydantic model for the request body
 class UpdateRequest(BaseModel):
+    """
+    Pydantic model for handling cell update requests.
+    Validates and structures the data needed for database updates.
+    """
     table: str = Field(..., description="Name of the table to update")
     column: str = Field(..., description="Column to update")
     value: str = Field(..., description="New value to set")
-    condition: str = Field(..., description="SQL condition for rows to update")
-    level: Optional[int] = Field(None, description="Grouping level for hierarchical updates")
+    condition: str = Field(
+        ...,
+        description="SQL condition for rows to update"
+    )
+    level: Optional[int] = Field(
+        None,
+        description="Grouping level for hierarchical updates"
+    )
 
 
 @app.get("/")
@@ -92,65 +126,6 @@ async def read_root():
     return {"message": "Welcome to the Liquid Duck API!"}
 
 
-# @app.post("/update_cell")
-# async def update_cell(request: UpdateRequest):
-#     """
-#     Update a specific cell in the database and propagate changes if necessary.
-#     """
-#     try:
-#         # Extract data from the validated request
-#         table = request.table
-#         column = request.column
-#         value = request.value
-#         condition = request.condition
-#         level = request.level
-
-#         print(f"Received data - Table: {table}, Column: {column}, Value: {value}, Condition: {condition}, Level: {level}")
-#         api_logger.info(f"Processing update request for table {table}.")
-
-#         # Test database connectivity
-#         await db_manager.execute_query_async("SELECT 1;")
-#         print("DuckDB connected successfully.")
-
-#         # Execute the update query asynchronously
-#         await db_manager.execute_query_async(
-#             f"""
-#             UPDATE {table}
-#             SET {column} = '{value}'
-#             WHERE {condition};
-#             """
-#         )
-#         print(f"Update query executed successfully for {table}.")
-
-#         # Handle proportional rebalance for hierarchical updates
-#         if table == "sales_summary_by_product_family" and level is not None:
-#             api_logger.info(f"proportional rebalance for level {level}.")
-#             await db_manager.proportional_rebalance_async(level, int(value))
-
-#         # Broadcast the changes to Redis response stream
-#         await redis_client.ping()
-#         print("Redis connected successfully.")
-#         await redis_client.xadd(
-#             RESPONSE_STREAM,
-#             {
-#                 "table": table,
-#                 "column": column,
-#                 "value": value,
-#                 "condition": condition,
-#                 "level": str(level) if level is not None else "null",
-#             }
-#         )
-#         print(f"Changes broadcasted to Redis stream {RESPONSE_STREAM}.")
-
-#         api_logger.info(f"updated {table}:{column}={value} WHERE {condition}.")
-#         return {"status": "success", "message": f"Updated {table}"}
-
-#     except HTTPException as e:
-#         api_logger.warning(f"HTTPException while update_cell: {str(e)}")
-#         raise e
-#     except Exception as e:
-#         api_logger.error(f"Unexpected server error: {str(e)}")
-#         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 @app.post("/update_cell")
 async def update_cell(request: UpdateRequest):
     """
@@ -166,9 +141,15 @@ async def update_cell(request: UpdateRequest):
 
         # Validate critical fields
         if not table or not column or not condition:
-            raise HTTPException(status_code=400, detail="Invalid input: Missing required fields.")
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid input: Missing required fields."
+            )
 
-        print(f"Received data - Table: {table}, Column: {column}, Value: {value}, Condition: {condition}, Level: {level}")
+        print(
+            f"Received data - Table: {table}, Column: {column}, "
+            f"Value: {value}, Condition: {condition}, Level: {level}"
+        )
         api_logger.info(f"Processing update request for table {table}.")
 
         # Test database connectivity
@@ -187,11 +168,16 @@ async def update_cell(request: UpdateRequest):
             print(f"Update query executed successfully for {table}.")
         except Exception as query_error:
             api_logger.error(f"Query execution error: {str(query_error)}")
-            raise HTTPException(status_code=500, detail="Query execution failed.")
+            raise HTTPException(
+                status_code=500,
+                detail="Query execution failed."
+            ) from query_error
 
         # Handle proportional rebalance for hierarchical updates
         if table == "sales_summary_by_product_family" and level is not None:
-            api_logger.info(f"proportional rebalance for level {level}.")
+            api_logger.info(
+                f"proportional rebalance for level {level}."
+            )
             await db_manager.proportional_rebalance_async(level, int(value))
 
         # Broadcast the changes to Redis response stream
@@ -211,17 +197,27 @@ async def update_cell(request: UpdateRequest):
             print(f"Changes broadcasted to Redis stream {RESPONSE_STREAM}.")
         except Exception as redis_error:
             api_logger.error(f"Redis broadcast error: {str(redis_error)}")
-            raise HTTPException(status_code=500, detail="Failed to broadcast changes to Redis.")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to broadcast changes to Redis."
+            ) from redis_error
 
         api_logger.info(f"updated {table}:{column}={value} WHERE {condition}.")
         return {"status": "success", "message": f"Updated {table}"}
 
     except HTTPException as e:
-        api_logger.warning(f"HTTPException while update_cell: {str(e)}")
+        api_logger.warning(
+            f"HTTPException while update_cell: {str(e)}"
+        )
         raise e
     except Exception as e:
-        api_logger.error(f"Unexpected server error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+        api_logger.error(
+            f"Unexpected server error: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Server error: {str(e)}"
+        ) from e
 
 
 @app.get("/get_updates")
@@ -236,12 +232,19 @@ async def get_updates():
         return {"status": "success", "updates": updates}
     except Exception as e:
         api_logger.error(f"Error fetching updates: {str(e)}")
-        raise HTTPException(status_code=500, detail="Server error")
+        raise HTTPException(
+            status_code=500,
+            detail="Server error"
+        ) from e
 
 
 @app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    print(f"Global error occurred: {exc}")  
+async def global_exception_handler(_request: Request, exc: Exception):
+    """
+    Global exception handler for all unhandled exceptions.
+    Returns a JSON response with error details.
+    """
+    print(f"Global error occurred: {exc}")
     api_logger.error(f"Global error: {exc}")
     return JSONResponse(
         status_code=500,
@@ -250,7 +253,14 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 @app.exception_handler(ValidationError)
-async def validation_exception_handler(request: Request, exc: ValidationError):
+async def validation_exception_handler(
+    _request: Request,
+    exc: ValidationError
+):
+    """
+    Exception handler for Pydantic validation errors.
+    Returns a JSON response with validation error details.
+    """
     api_logger.error(f"Validation error: {exc}")
     return JSONResponse(
         status_code=422,
