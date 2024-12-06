@@ -10,7 +10,7 @@ and testing via Postman.
 
 If Poetry is not installed, install it using the following command:
 
-[pip install poetry]{.mark}
+[curl -sSL https://install.python-poetry.org | python3 -]{.mark}
 
 Verify the installation:
 
