@@ -12,11 +12,18 @@ The following steps make up the backend design:
 4. Testing: Postman for testing and validation
 
 # Key Modules
-1. Python: To manage the DuckDB database
-2. DuckDB manager: Implement singleton pattern to manage a single DuckDB connection
-3. Redis: request_duck for incoming user requests, response_duck for sending responses back to users
-4. Flask APIs: endpoints for CRUD operations and analytical queries, interfaces with DuckDB
-5. Test Data: faker library to create real time test data
+1. FastAPI: Provides API endpoints for CRUD operations and analytical queries.
+2. DuckDBManager: Singleton manager for handling DuckDB connections.
+3. Redis: Handles incoming user requests (request_duck) and outgoing responses (response_duck).
+4. Python Scripts:
+	data.py: Generates tables and test data using the Faker library.
+	mainapi.py: Main FastAPI application for managing API endpoints.
+	DuckDBManager.py: Implements the DuckDB singleton manager.
+	logger.py: Centralized logging system.
+5. Documentation:(Docs folder)
+	Complete Execution Guide
+	Design Document
+	CI/CD Workflow Document
 
 # Data Flow
 1. API Interaction:
@@ -81,13 +88,11 @@ The following steps make up the backend design:
 -verified Redu=is cli for response updated and queried DuckDB to check the updates
    
 # Test cases
-1.  Update a cell and validate the corresponding changes in DuckDB and Redis.
-2.	Simulate multiple users sending updates simultaneously and validate that Redis and DuckDB handle updates sequentially(different cell/tables)
-3.	Two users update the same cell simultaneously..is it expected to overwrite the first update? it manages the que..clarification needed.
-4.	Update a parent node (Brand X) and verify proportional updates to child nodes.
-5.	Update a parent node with zeroed child nodes and verify equal distribution.
-6.	Update the sales table and ensure sales_summary_by_product_family view is consistent
-7.	Update a non existent table/cell
+1.Update a cell and validate the changes in DuckDB and Redis.
+2.Simulate multi-user concurrent updates with Redis.
+3.Parent-to-child proportional updates.
+4.Equal distribution for zeroed child nodes.
+5.Validation for invalid table/column inputs.
 
 	
 
