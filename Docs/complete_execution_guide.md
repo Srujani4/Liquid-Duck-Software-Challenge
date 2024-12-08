@@ -270,7 +270,3 @@ Ensure you’ve configured `.github/workflows/python-app.yml` for GitHub Actions
 ## **Conclusion**
 
 Following these steps, you can successfully set up, execute, and test the project from scratch.
-
----
-
-This version enhances the readability of your documentation, ensuring that each section is clearly separated, and commands are highlighted properly using code blocks. Each action step is now more visually accessible and straightforward for users to follow.
