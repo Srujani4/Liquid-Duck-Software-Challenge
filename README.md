@@ -1,98 +1,134 @@
-# Problem Statement
-Create a backend system that supports a shared spreadsheet-like application using DuckDB as the storage engine. The backend must handle: 
--Multi-user updates in real time. 
--Efficient data querying, aggregation, and modification. 
--Concurrency management for a single read/write connection to DuckDB.
+# **Backend System for a Shared Spreadsheet Application**
 
-# Overview
-The following steps make up the backend design:
-1. DuckDB: Single read-write connection using a singleton pattern
-2. Real-time request-response: APIs with redis stream for multi-user communication
-3. Analytical queries: Using joins, pivot, unpivot, union, group_by, grouping_sets, Windowing Functions, CTEs
-4. Testing: Postman for testing and validation
+## **Problem Statement**
+The objective is to develop a backend system that supports a shared spreadsheet-like application. This backend must facilitate multi-user updates in real time while ensuring efficient data querying, aggregation, and modification. Additionally, it must include robust concurrency management with a single read/write connection to DuckDB.
 
-# Key Modules
-1. FastAPI: Provides API endpoints for CRUD operations and analytical queries.
-2. DuckDBManager: Singleton manager for handling DuckDB connections.
-3. Redis: Handles incoming user requests (request_duck) and outgoing responses (response_duck).
-4. Python Scripts:
-	data.py: Generates tables and test data using the Faker library.
-	mainapi.py: Main FastAPI application for managing API endpoints.
-	DuckDBManager.py: Implements the DuckDB singleton manager.
-	logger.py: Centralized logging system.
-5. Documentation:(Docs folder)
-	Complete Execution Guide
-	Design Document
-	CI/CD Workflow Document
+---
 
-# Data Flow
-1. API Interaction:
-  - Request is received at 'POST/update_cell' end point in the FastAPI backend
-  - Backend validates the request like is it a valid table, column, may be any condition that 
-    is valid or not
-  - The validated request is added to 'request_duck' stream
-    Sample entry json:
+## **Overview**
+The backend system is designed using a combination of modern technologies and tools to ensure high performance, scalability, and maintainability. The following components constitute the backend design:
 
-    {
-     "data": {
-       "table": "table_name",
-       "column": "column_name",
-       "value": "some value",
-       "condition": "condition"
-     }
-   }
+1. **DuckDB**: A single read-write connection is implemented using the Singleton pattern.  
+2. **Real-Time Request-Response**: Redis Streams facilitate multi-user communication and real-time updates.  
+3. **Analytical Queries**: Advanced SQL features are utilized, including joins, pivot, unpivot, union, group by, grouping sets, windowing functions, and common table expressions (CTEs).  
+4. **Testing**: Validation and testing are performed using Postman to ensure reliable functionality.
 
-2. Redis to DuckDB:
-   - Create a python file that access the 'request_duck' stream and making sure the request is 
-     retrieved and processed.
-   - Singleton manager connects to the duckdb file and executes the sql.
-     As in above json file, sql would be
-     UPDATE table
-     SET column = value
-     where (conditions)
-   - This triggers the parent-child relation in the view and is recalculated with grouping_sets
-   - After the update, backend pushes the updated data to response_duck
-  
-3. Receiving updates:
-   - sending a GET/get_updates request to access the updates
-     Json sample output:
-     {
-     "data":{
-       "updates":[
-        {
-         "brand":
-         "family": 
-           etc
-        }
-     }
-   }
+---
 
-# Step-by-step process:
-1. Set up environment
-   -Install tools Python, Redis, DuckDB.
-   -Start Redis server, set up DuckDB Database
-2. Backend with FastAPI
-   - Create a file for APIs to interact with Redis and DuckDB
-3. Redis for communication
-   - Create a python script for processing updates from Redis to DuckDB
-4. Testing APIs
-   - POST/update_cell: sends an update request to Redis request_duck
-   - GET/get_updates: receives updates from redis response_duck
-   - GET/view_table/{table_name}: gives full data of the table--considering this option
-  
-# steps for execution
--Created and executed data.py to create tables
--Established a connection with DuckDB singleton class with DuckDBManager.py 
--Created centralised logs with logger.py file
--Ran the fast api with uvicorn to establish a connection with redis and duckdb thereby sending the requests through postman and updating the respective columns/tables.
--verified Redu=is cli for response updated and queried DuckDB to check the updates
-   
-# Test cases
-1.Update a cell and validate the changes in DuckDB and Redis.
-2.Simulate multi-user concurrent updates with Redis.
-3.Parent-to-child proportional updates.
-4.Equal distribution for zeroed child nodes.
-5.Validation for invalid table/column inputs.
+## **Key Modules**
+The backend system comprises the following modules and components:
 
-	
+### **1. FastAPI**
+Provides API endpoints for CRUD operations and analytical queries.
+
+### **2. DuckDBManager**
+Implements a Singleton Manager for handling DuckDB connections.
+
+### **3. Redis**
+Handles communication between user requests (`request_duck` stream) and responses (`response_duck` stream).
+
+### **4. Python Scripts**
+- **`data.py`**: Generates tables and test data using the `Faker` library.  
+- **`mainapi.py`**: Main FastAPI application for managing API endpoints.  
+- **`DuckDBManager.py`**: Implements the DuckDB Singleton Manager.  
+- **`logger.py`**: Provides a centralized logging system.  
+
+### **5. Documentation**
+The `docs` folder contains:  
+- Complete Execution Guide  
+- Design Document  
+- CI/CD Workflow Document  
+
+---
+
+## **Data Flow**
+
+### **1. API Interaction**
+A request is sent to the `POST/update_cell` endpoint in the FastAPI backend. The backend validates the request to ensure it refers to a valid table, column, or condition. After validation, the request is added to the `request_duck` stream in Redis in the following format:
+
+```json
+{
+  "data": {
+    "table": "table_name",
+    "column": "column_name",
+    "value": "some_value",
+    "condition": "condition"
+  }
+}
+```
+
+### **2. Redis to DuckDB**
+A Python script accesses the `request_duck` stream, retrieves the request, and processes it. The Singleton Manager establishes a connection with DuckDB and executes the corresponding SQL query. For example, the JSON above would result in the following SQL:
+
+```sql
+UPDATE table_name
+SET column_name = some_value
+WHERE condition;
+```
+
+This triggers updates in the view, recalculating parent-child relationships using `GROUPING SETS`. After processing, the updated data is pushed to the `response_duck` stream.
+
+### **3. Receiving Updates**
+Users can send a `GET/get_updates` request to retrieve the latest updates. The response format is as follows:
+
+```json
+{
+  "data": {
+    "updates": [
+      {
+        "brand": "value",
+        "family": "value",
+        ...
+      }
+    ]
+  }
+}
+```
+
+---
+
+## **Step-by-Step Process**
+
+### **1. Set Up the Environment**
+- Install required tools: Python, Redis, and DuckDB.
+- Start the Redis server and set up the DuckDB database.
+
+### **2. Backend Development with FastAPI**
+- Create API endpoints to interact with Redis and DuckDB.
+
+### **3. Redis Communication**
+- Implement a Python script to process updates from Redis to DuckDB.
+
+### **4. Testing APIs**
+- Use the following endpoints:
+  - `POST/update_cell`: Sends an update request to `request_duck` in Redis.
+  - `GET/get_updates`: Receives updates from `response_duck`.
+  - `GET/view_table/{table_name}`: Retrieves the complete data for a specified table.
+
+### **5. Execution Workflow**
+1. Run `data.py` to create tables.
+2. Establish a connection with DuckDB using the `DuckDBManager` Singleton class.
+3. Use `logger.py` for centralized logging.
+4. Launch the FastAPI app with Uvicorn to connect with Redis and DuckDB.
+5. Use Postman to send requests and verify updates in Redis and DuckDB.
+
+---
+
+## **Test Cases**
+
+### **1. Update Validation**
+Update a cell and confirm the changes are reflected in DuckDB and Redis.
+
+### **2. Multi-User Concurrency**
+Simulate concurrent updates from multiple users using Redis Streams.
+
+### **3. Parent-Child Updates**
+Validate parent-to-child proportional updates in the data hierarchy.
+
+### **4. Zeroed Child Nodes**
+Distribute values equally among child nodes when parent nodes are zeroed.
+
+### **5. Invalid Input Handling**
+Ensure the system rejects invalid table or column names with appropriate error messages.
+
 
